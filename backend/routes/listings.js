@@ -1,22 +1,38 @@
 // backend/routes/listings.js
 
 const express = require('express');
-const auth = require('../middleware/auth'); // Import the auth middleware
-const Listing = require('../models/Listing'); // Import the Listing model
+const auth = require('../middleware/auth');
+const Listing = require('../models/Listing');
+const axios = require('axios'); // For calling the AI service
 
 const router = express.Router();
 
 // @route   POST api/listings
-// @desc    Create a new listing
-// @access  Private (notice 'auth' is added here)
+// @desc    Create a new listing (with AI processing)
+// @access  Private
 router.post('/', auth, async (req, res) => {
   try {
     const { description, location } = req.body;
 
+    // --- AI INTEGRATION ---
+    let structuredData = {};
+    try {
+      // Call the Python AI service
+      const aiResponse = await axios.post('http://127.0.0.1:5002/process', {
+        description: description
+      });
+      structuredData = aiResponse.data;
+    } catch (aiError) {
+      console.error("AI Service Error:", aiError.message);
+      // If AI fails, proceed without structured data. Don't block the listing.
+    }
+    // --------------------
+
     const newListing = new Listing({
       description,
       location,
-      postedBy: req.user.id, // Get the user ID from the middleware
+      postedBy: req.user.id,
+      structuredData: structuredData, // Save the AI's response
     });
 
     const listing = await newListing.save();
@@ -57,5 +73,7 @@ router.get('/mine', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+
+
 
 module.exports = router;

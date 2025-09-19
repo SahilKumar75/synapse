@@ -1,13 +1,14 @@
-// frontend/synapse/lib/services/auth_service.dart
+// frontend/synapse_app/lib/services/auth_service.dart
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  // For Android Emulator, use 10.0.2.2. For web or physical device, use your computer's IP address.
-  // lib/services/auth_service.dart
-final String _baseUrl = 'http://localhost:5001/api/users';
+  // For web, use localhost. For Android Emulator, use 10.0.2.2.
+  // For iOS Simulator, use localhost.
+  // For a physical device, use your computer's local network IP.
+  final String _baseUrl = 'http://localhost:5001/api/users';
   final _storage = const FlutterSecureStorage();
 
   Future<bool> login(String email, String password) async {
@@ -28,5 +29,13 @@ final String _baseUrl = 'http://localhost:5001/api/users';
       print(e.toString());
       return false;
     }
+  }
+
+  Future<String?> getToken() async {
+    return await _storage.read(key: 'token');
+  }
+
+  Future<void> logout() async {
+    await _storage.delete(key: 'token');
   }
 }

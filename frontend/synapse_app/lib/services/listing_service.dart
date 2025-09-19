@@ -30,6 +30,28 @@ class ListingService {
   final String _baseUrl = 'http://localhost:5001/api/listings';
   final _storage = const FlutterSecureStorage();
 
+  Future<bool> createListing(String description, String location) async {
+    try {
+      String? token = await _storage.read(key: 'token');
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token ?? '',
+        },
+        body: jsonEncode({
+          'description': description,
+          'location': location,
+        }),
+      );
+      // 201 means "Created"
+      return response.statusCode == 201;
+    } catch (e) {
+      print(e.toString());
+      return false;
+    }
+  }
+
   Future<List<Listing>> getListings() async {
     try {
       // We get the token to prove we're logged in, even for public routes
