@@ -1,8 +1,9 @@
-// frontend/synapse/lib/screens/login_screen.dart
+// lib/screens/login_screen.dart
 
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart'; // Go up one directory, then into services
-import 'home_screen.dart';             // It's in the same directory
+import 'home_screen.dart';
+import 'register_screen.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,6 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _emailController.text,
       _passwordController.text,
     );
+
+    if (!mounted) return;
 
     setState(() {
       _isLoading = false;
@@ -76,6 +79,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
               child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Login'),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  // THE FIX IS HERE: Removed 'const' before RegisterScreen()
+                  MaterialPageRoute(builder: (context) => RegisterScreen()),
+                );
+              },
+              child: const Text('Don\'t have an account? Sign Up'),
             ),
           ],
         ),

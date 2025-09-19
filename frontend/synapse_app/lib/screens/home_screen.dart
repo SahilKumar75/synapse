@@ -1,6 +1,7 @@
-// frontend/synapse_app/lib/screens/home_screen.dart
+// lib/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
+import 'listing_details_screen.dart';
 import 'login_screen.dart';
 import 'new_listing_screen.dart';
 import '../services/auth_service.dart';
@@ -41,7 +42,16 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const NewListingScreen()),
     );
+    if (result == true) {
+      _fetchListings();
+    }
+  }
 
+  void _navigateToDetailsAndRefresh(Listing listing) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ListingDetailsScreen(listing: listing)),
+    );
     if (result == true) {
       _fetchListings();
     }
@@ -88,6 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             title: Text(listing.description),
                             subtitle: Text('${listing.companyName} - ${listing.location}'),
                             leading: const Icon(Icons.recycling, color: Colors.teal),
+                            onTap: () => _navigateToDetailsAndRefresh(listing),
                           ),
                         );
                       },
