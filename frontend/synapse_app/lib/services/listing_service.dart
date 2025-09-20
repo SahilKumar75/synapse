@@ -11,6 +11,7 @@ class Listing {
   final String location;
   final String companyName;
   final LatLng coordinates;
+  final String listingType;
 
   Listing({
     required this.id,
@@ -18,6 +19,7 @@ class Listing {
     required this.location,
     required this.companyName,
     required this.coordinates,
+    required this.listingType,
   });
 
   factory Listing.fromJson(Map<String, dynamic> json) {
@@ -34,12 +36,34 @@ class Listing {
       description: json['description'] ?? 'No description',
       location: json['location'] ?? 'No location',
       companyName: json['postedBy']?['company'] ?? 'Unknown Company',
-      coordinates: LatLng(lat, lng), // <-- ADD THIS
+      coordinates: LatLng(lat, lng),
+      listingType: json['listingType'] ?? '',
     );
   }
 }
 
 class ListingService {
+  Future<List<Map<String, dynamic>>> getMatches(String listingId) async {
+    try {
+      String? token = await _storage.read(key: 'token');
+      final response = await http.get(
+        Uri.parse('$_baseUrl/$listingId/matches'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token ?? '',
+        },
+      );
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => json as Map<String, dynamic>).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print(e.toString());
+      return [];
+    }
+  }
   final String _baseUrl = 'http://localhost:5001/api/listings';
   final _storage = const FlutterSecureStorage();
 
@@ -65,7 +89,7 @@ class ListingService {
     }
   }
 
-  Future<bool> createListing(String description, String location) async {
+  Future<bool> createListing(String description, String location, String listingType) async {
     try {
       String? token = await _storage.read(key: 'token');
       final response = await http.post(
@@ -77,6 +101,7 @@ class ListingService {
         body: jsonEncode({
           'description': description,
           'location': location,
+          'listingType': listingType,
         }),
       );
       return response.statusCode == 201;

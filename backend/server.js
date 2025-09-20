@@ -21,6 +21,8 @@ app.use(express.json());
 // 2. Now, define your routes.
 app.use('/api/users', userRoutes);
 app.use('/api/listings', listingRoutes);
+const placesRoutes = require('./routes/places');
+app.use('/api/places', placesRoutes);
 // ===========
 
 // Check if the MONGO_URI is actually loaded
