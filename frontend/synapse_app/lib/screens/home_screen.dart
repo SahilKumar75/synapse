@@ -649,10 +649,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateAndRefresh,
-        backgroundColor: Colors.teal,
-        child: const Icon(Icons.add),
+      floatingActionButton: SizedBox(
+        width: 260,
+        height: 56,
+        child: ElevatedButton.icon(
+          onPressed: _navigateAndRefresh,
+          icon: const Icon(Icons.add, color: Colors.white, size: 28),
+          label: const Text(
+            'Create Offer/Request',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF007AFF),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            elevation: 6,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          ),
+        ),
       ),
     );
   }

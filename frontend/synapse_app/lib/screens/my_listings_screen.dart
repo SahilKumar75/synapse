@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../services/listing_service.dart';
 import 'listing_details_screen.dart';
@@ -45,86 +46,150 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Listings'),
-        backgroundColor: Colors.teal,
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('My Listings'),
+        backgroundColor: CupertinoColors.systemGrey6,
       ),
-      body: widget.userId.isEmpty
+      child: widget.userId.isEmpty
           ? const Center(child: Text('Error: User ID is missing. Please log in again.'))
           : _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CupertinoActivityIndicator())
               : _myListings.isEmpty
                   ? const Center(child: Text('No listings found.'))
                   : ListView.builder(
                       itemCount: _myListings.length,
                       itemBuilder: (context, index) {
                         final listing = _myListings[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                          child: ListTile(
-                            title: Text(listing.companyName),
-                            subtitle: Column(
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemBackground,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: CupertinoColors.systemGrey.withOpacity(0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(listing.description),
-                                Text('Location: ${listing.location}'),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ListingDetailsScreen(listing: listing),
-                                        settings: RouteSettings(arguments: widget.userId),
-                                      ),
-                                    );
-                                    if (result == true) {
-                                      _fetchMyListings();
-                                    }
-                                  },
-                                  child: const Text('View'),
+                                Text(
+                                  listing.companyName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 17,
+                                    color: CupertinoColors.label,
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                  onPressed: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('End Listing'),
-                                        content: const Text('Are you sure you want to end (delete) this listing?'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(false),
-                                            child: const Text('Cancel'),
+                                if (listing.description.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    listing.description,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      color: CupertinoColors.secondaryLabel,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Location: ${listing.location}',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: CupertinoColors.systemGrey,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    CupertinoButton(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                      minSize: 32,
+                                      color: CupertinoColors.activeBlue,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: const Text('View', style: TextStyle(fontSize: 15)),
+                                      onPressed: () async {
+                                        final result = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => ListingDetailsScreen(listing: listing),
+                                            settings: RouteSettings(arguments: widget.userId),
                                           ),
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(true),
-                                            child: const Text('End Listing'),
+                                        );
+                                        if (result == true) {
+                                          _fetchMyListings();
+                                        }
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    CupertinoButton(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                      minSize: 32,
+                                      color: CupertinoColors.systemRed,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: const Text('End Listing', style: TextStyle(fontSize: 15)),
+                                      onPressed: () async {
+                                        final confirm = await showCupertinoDialog<bool>(
+                                          context: context,
+                                          builder: (context) => CupertinoAlertDialog(
+                                            title: const Text('End Listing'),
+                                            content: const Text('Are you sure you want to end (delete) this listing?'),
+                                            actions: [
+                                              CupertinoDialogAction(
+                                                onPressed: () => Navigator.of(context).pop(false),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              CupertinoDialogAction(
+                                                isDestructiveAction: true,
+                                                onPressed: () => Navigator.of(context).pop(true),
+                                                child: const Text('End Listing'),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    );
-                                    if (confirm == true) {
-                                      final success = await _listingService.deleteListing(listing.id);
-                                      if (success) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Listing ended successfully.'), backgroundColor: Colors.green),
                                         );
-                                        _fetchMyListings();
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Failed to end listing.'), backgroundColor: Colors.red),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  child: const Text('End Listing'),
+                                        if (confirm == true) {
+                                          final success = await _listingService.deleteListing(listing.id);
+                                          if (success) {
+                                            showCupertinoDialog(
+                                              context: context,
+                                              builder: (context) => CupertinoAlertDialog(
+                                                title: const Text('Success'),
+                                                content: const Text('Listing ended successfully.'),
+                                                actions: [
+                                                  CupertinoDialogAction(
+                                                    child: const Text('OK'),
+                                                    onPressed: () => Navigator.of(context).pop(),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                            _fetchMyListings();
+                                          } else {
+                                            showCupertinoDialog(
+                                              context: context,
+                                              builder: (context) => CupertinoAlertDialog(
+                                                title: const Text('Error'),
+                                                content: const Text('Failed to end listing.'),
+                                                actions: [
+                                                  CupertinoDialogAction(
+                                                    child: const Text('OK'),
+                                                    onPressed: () => Navigator.of(context).pop(),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
