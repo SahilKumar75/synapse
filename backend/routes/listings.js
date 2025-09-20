@@ -38,6 +38,26 @@ router.post('/', auth, async (req, res) => {
       structuredData = aiResponse.data;
     } catch (aiError) { console.error("AI Service Error:", aiError.message); }
 
+    // Fallback: extract material from description if missing
+    if (!structuredData.material) {
+      const materialMatch = description.match(/material\s*[:\-]?\s*(\w+)/i);
+      if (materialMatch && materialMatch[1]) {
+        structuredData.material = materialMatch[1];
+        console.log(`[DEBUG] Fallback extracted material: ${structuredData.material}`);
+      } else {
+        // Try to extract last word if it matches a known material
+        const knownMaterials = ['wood', 'steel', 'plastic', 'glass', 'copper', 'aluminum', 'sugarcane'];
+        const words = description.toLowerCase().split(/\s+/);
+        const lastWord = words[words.length - 1].replace(/[^a-z]/g, '');
+        if (knownMaterials.includes(lastWord)) {
+          structuredData.material = lastWord;
+          console.log(`[DEBUG] Fallback extracted material from last word: ${structuredData.material}`);
+        } else {
+          console.log('[DEBUG] No material found in description for fallback.');
+        }
+      }
+    }
+
     const geolocation = await geocodeLocation(location);
 
     const newListing = new Listing({
@@ -87,6 +107,7 @@ router.get('/:id/matches', auth, async (req, res) => {
     try {
       const sourceListing = await Listing.findById(req.params.id);
       if (!sourceListing || !sourceListing.structuredData?.material) {
+        console.log('[DEBUG] Source listing missing or no material:', sourceListing);
         return res.status(404).json({ msg: 'Source listing or its material data not found' });
       }
       const targetType = sourceListing.listingType === 'OFFER' ? 'REQUEST' : 'OFFER';
@@ -96,15 +117,23 @@ router.get('/:id/matches', auth, async (req, res) => {
         _id: { $ne: sourceListing._id }
       }).populate('postedBy', ['name', 'company']);
 
+      console.log(`[DEBUG] Found ${potentialMatches.length} potential matches for type ${targetType}`);
       const sourceMaterial = sourceListing.structuredData.material.toLowerCase().trim();
+      console.log(`[DEBUG] Source material: '${sourceMaterial}'`);
       const matches = potentialMatches.filter(listing => {
-        if (!listing.structuredData?.material) return false;
+        if (!listing.structuredData?.material) {
+          console.log(`[DEBUG] Skipping listing ${listing._id}: no material`);
+          return false;
+        }
         const targetMaterial = listing.structuredData.material.toLowerCase().trim();
-        return sourceMaterial.includes(targetMaterial) || targetMaterial.includes(sourceMaterial);
+        const isMatch = sourceMaterial.includes(targetMaterial) || targetMaterial.includes(sourceMaterial);
+        console.log(`[DEBUG] Comparing source '${sourceMaterial}' with target '${targetMaterial}' => ${isMatch}`);
+        return isMatch;
       });
+      console.log(`[DEBUG] Final matches found: ${matches.length}`);
       res.json(matches);
     } catch (err) {
-      console.error(err.message);
+      console.error('[ERROR] /:id/matches:', err.message);
       res.status(500).send('Server Error');
     }
 });

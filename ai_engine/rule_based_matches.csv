@@ -1,0 +1,6 @@
+offer_company,request_company,compound,quantity_offer,quantity_request,location_distance,keyword_overlap,keyword_jaccard
+AlphaChem,BetaPlastics,Polyethylene,1000,800,0.0,2,0.5
+AlphaChem,EcoSolvents,Polyethylene,1000,950,129.724928189055,3,1.0
+BetaPlastics,BetaPlastics,Polyethylene,900,800,0.0,3,1.0
+BetaPlastics,EcoSolvents,Polyethylene,900,950,129.724928189055,2,0.5
+EcoSolvents,AlphaChem,Acetone,500,200,129.724928189055,2,0.5

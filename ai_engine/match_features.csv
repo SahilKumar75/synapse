@@ -1,0 +1,10 @@
+offer_company,offer_location,offer_compound,offer_quantity,offer_keywords,request_company,request_location,request_compound,request_quantity,request_keywords,location_distance,quantity_diff,keyword_overlap,keyword_jaccard,offer_kw_chemical,request_kw_chemical,offer_kw_flammable,request_kw_flammable,offer_kw_plastic,request_kw_plastic,offer_kw_polymer,request_kw_polymer,offer_kw_raw material,request_kw_raw material,offer_kw_recyclable,request_kw_recyclable,offer_kw_solvent,request_kw_solvent
+AlphaChem,NY,Polyethylene,1000,"plastic,polymer,recyclable",BetaPlastics,NY,Polyethylene,800,"plastic,polymer,raw material",0.0,200,2,0.5,0,0,0,0,1,1,1,1,0,1,1,0,0,0
+AlphaChem,NY,Polyethylene,1000,"plastic,polymer,recyclable",AlphaChem,NY,Acetone,200,"solvent,chemical,cleaning",0.0,800,0,0.0,0,1,0,0,1,0,1,0,0,0,1,0,0,1
+AlphaChem,NY,Polyethylene,1000,"plastic,polymer,recyclable",EcoSolvents,PHI,Polyethylene,950,"plastic,polymer,recyclable",129.724928189055,50,3,1.0,0,0,0,0,1,1,1,1,0,0,1,1,0,0
+BetaPlastics,NY,Polyethylene,900,"plastic,polymer,raw material",BetaPlastics,NY,Polyethylene,800,"plastic,polymer,raw material",0.0,100,3,1.0,0,0,0,0,1,1,1,1,1,1,0,0,0,0
+BetaPlastics,NY,Polyethylene,900,"plastic,polymer,raw material",AlphaChem,NY,Acetone,200,"solvent,chemical,cleaning",0.0,700,0,0.0,0,1,0,0,1,0,1,0,1,0,0,0,0,1
+BetaPlastics,NY,Polyethylene,900,"plastic,polymer,raw material",EcoSolvents,PHI,Polyethylene,950,"plastic,polymer,recyclable",129.724928189055,50,2,0.5,0,0,0,0,1,1,1,1,1,0,0,1,0,0
+EcoSolvents,PHI,Acetone,500,"solvent,chemical,flammable",BetaPlastics,NY,Polyethylene,800,"plastic,polymer,raw material",129.724928189055,300,0,0.0,1,0,1,0,0,1,0,1,0,1,0,0,1,0
+EcoSolvents,PHI,Acetone,500,"solvent,chemical,flammable",AlphaChem,NY,Acetone,200,"solvent,chemical,cleaning",129.724928189055,300,2,0.5,1,1,1,0,0,0,0,0,0,0,0,0,1,1
+EcoSolvents,PHI,Acetone,500,"solvent,chemical,flammable",EcoSolvents,PHI,Polyethylene,950,"plastic,polymer,recyclable",0.0,450,0,0.0,1,0,1,0,0,1,0,1,0,0,0,1,1,0

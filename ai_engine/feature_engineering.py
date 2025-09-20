@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
 from geopy.distance import geodesic
+from db_setup import db_companies, db_waste_streams, db_input_needs
 
 # Location coordinates for distance calculation
 location_coords = {
@@ -36,10 +37,115 @@ def engineer_features(df):
     for i, kw in enumerate(classes):
         df[f'offer_kw_{kw}'] = offer_kw[:, i]
         df[f'request_kw_{kw}'] = request_kw[:, i]
+
+    # --- Advanced Features ---
+    # Chemical compatibility (dummy logic: same compound class)
+    def compound_class(compound):
+        plastics = ['Polyethylene', 'Polypropylene', 'PVC']
+        solvents = ['Acetone', 'Ethanol']
+        if compound in plastics:
+            return 'plastic'
+        elif compound in solvents:
+            return 'solvent'
+        else:
+            return 'other'
+
+    df['offer_compound_class'] = df['offer_compound'].apply(compound_class)
+    df['request_compound_class'] = df['request_compound'].apply(compound_class)
+    df['chemical_compatible'] = (df['offer_compound_class'] == df['request_compound_class']).astype(int)
+
+    # Hazard level feature
+    hazard_levels = {'Polyethylene': 1, 'Polypropylene': 1, 'PVC': 2, 'Acetone': 3, 'Ethanol': 2}
+    df['offer_hazard_level'] = df['offer_compound'].map(hazard_levels).fillna(0)
+    df['request_hazard_level'] = df['request_compound'].map(hazard_levels).fillna(0)
+
+    # Transformation process (dummy: can offer compound be converted to request compound)
+    def can_transform(offer, request):
+        if offer == 'Polyethylene' and request == 'Polypropylene':
+            return 1
+        return 0
+    df['can_transform'] = df.apply(lambda row: can_transform(row['offer_compound'], row['request_compound']), axis=1)
+
+    # Regulatory constraints (region-specific, dummy logic)
+    region_laws = {
+        'NY': ['Acetone'],
+        'LA': [],
+        'CHI': ['PVC'],
+        'HOU': [],
+        'PHI': ['Ethanol']
+    }
+    def is_regulatory_allowed(row):
+        offer = row['offer_compound']
+        request = row['request_compound']
+        offer_loc = row['offer_location']
+        request_loc = row['request_location']
+        if offer in region_laws.get(offer_loc, []) or request in region_laws.get(request_loc, []):
+            return 0
+        return 1
+    df['regulatory_allowed'] = df.apply(is_regulatory_allowed, axis=1)
+
+    # Historical match frequency (dummy: count previous matches between companies)
+    # In real use, this should query a match history database
+    df['historical_match_freq'] = 0  # Placeholder, to be filled with real data
+
+    # Time-based features (seasonality, recency)
+    if 'offer_date' in df.columns and 'request_date' in df.columns:
+        df['offer_month'] = pd.to_datetime(df['offer_date']).dt.month
+        df['request_month'] = pd.to_datetime(df['request_date']).dt.month
+        df['recency_days'] = (pd.to_datetime(df['request_date']) - pd.to_datetime(df['offer_date'])).dt.days.abs()
+    else:
+        df['offer_month'] = 0
+        df['request_month'] = 0
+        df['recency_days'] = 0
+
+    # Company reputation/feedback score (dummy: random or from company profile)
+    if 'offer_company_reputation' in df.columns:
+        df['offer_company_reputation'] = df['offer_company_reputation']
+    else:
+        df['offer_company_reputation'] = 0
+    if 'request_company_reputation' in df.columns:
+        df['request_company_reputation'] = df['request_company_reputation']
+    else:
+        df['request_company_reputation'] = 0
+
     return df
 
-df = pd.read_csv('match_dataset.csv')
-df = engineer_features(df)
-# Save engineered features for model training
-df.to_csv('match_features.csv', index=False)
-print('Feature engineering complete: match_features.csv')
+
+# Example: Fetch data from MongoDB and prepare for feature engineering
+def fetch_match_data():
+    # Get all companies
+    companies = list(db_companies.find())
+    # Get all waste streams
+    wastes = list(db_waste_streams.find())
+    # Get all input needs
+    needs = list(db_input_needs.find())
+    # Example: Pairwise matching (can be improved)
+    match_rows = []
+    for waste in wastes:
+        for need in needs:
+            offer_company = next((c for c in companies if c['_id'] == waste['company_id']), None)
+            request_company = next((c for c in companies if c['_id'] == need['company_id']), None)
+            if offer_company and request_company:
+                match_rows.append({
+                    'offer_company': offer_company['name'],
+                    'offer_location': offer_company.get('location', ''),
+                    'offer_compound': waste['compound'],
+                    'offer_quantity': waste['quantity'],
+                    'offer_keywords': ','.join(waste.get('properties', {}).get('keywords', [])),
+                    'request_company': request_company['name'],
+                    'request_location': request_company.get('location', ''),
+                    'request_compound': need['compound'],
+                    'request_quantity': need['quantity'],
+                    'request_keywords': ','.join(need.get('properties', {}).get('keywords', [])),
+                })
+    return pd.DataFrame(match_rows)
+
+if __name__ == "__main__":
+    df = fetch_match_data()
+    if not df.empty:
+        df = engineer_features(df)
+        # Save engineered features for model training
+        df.to_csv('match_features.csv', index=False)
+        print('Feature engineering complete: match_features.csv')
+    else:
+        print('No match data found in MongoDB.')

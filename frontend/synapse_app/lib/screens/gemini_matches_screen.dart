@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
 import '../services/auth_service.dart';
+// import '../services/gemini_match_service.dart';
 
-class MatchesScreen extends StatelessWidget {
+class GeminiMatchesScreen extends StatelessWidget {
   final List<Map<String, dynamic>> matches;
 
-  const MatchesScreen({Key? key, required this.matches}) : super(key: key);
+  const GeminiMatchesScreen({Key? key, required this.matches}) : super(key: key);
+
+  // ...existing code...
 
   Future<void> _sendContactNotification(BuildContext context, Map<String, dynamic> match) async {
     final notificationService = NotificationService();
@@ -29,6 +32,9 @@ class MatchesScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ...existing code...
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

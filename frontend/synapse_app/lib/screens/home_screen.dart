@@ -7,10 +7,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'login_screen.dart';
 import 'new_listing_screen.dart';
-import 'matches_screen.dart';
+import 'gemini_matches_screen.dart'; // Contains GeminiMatchesScreen
 import 'listing_details_screen.dart';
 import '../services/auth_service.dart';
 import '../services/listing_service.dart';
+import '../services/gemini_match_service.dart';
 import 'my_listings_screen.dart';
 import '../widgets/listing_card.dart';
 
@@ -128,12 +129,49 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _newListings = [];
   GoogleMapController? _mapController;
   void _navigateToMatchesScreen(String listingId) async {
-    // Fetch matches from backend and navigate
+    // Fetch matches from backend
     final matches = await _listingService.getMatches(listingId);
+
+    // For each match, get Gemini score
+    for (var match in matches) {
+      final prompt = '''
+Given the following offer and request, rate the match from 0 (poor) to 1 (excellent):
+
+Offer Details:
+  Title: ${match['title'] ?? ''}
+  Description: ${match['description'] ?? ''}
+  Material: ${match['material'] ?? ''}
+  Location: ${match['location'] ?? ''}
+  Quantity: ${match['quantity'] ?? ''}
+  Company: ${match['postedBy']?['company'] ?? ''}
+  Listing Type: ${match['listingType'] ?? ''}
+
+Request Details:
+  [Describe the user's request here]
+
+Additional Info:
+  Posted By: ${match['postedBy']?['name'] ?? ''} (${match['postedBy']?['email'] ?? ''})
+
+Reply ONLY with a number between 0 and 1 (the match score).
+''';
+      final scoreStr = await getGeminiMatchScore(prompt);
+      print('Gemini response: $scoreStr');
+      // Extract first number between 0 and 1 from response
+      double score = 0.0;
+      if (scoreStr != null) {
+        final matchNum = RegExp(r'(0(\.\d+)?|1(\.0+)?)').firstMatch(scoreStr);
+        if (matchNum != null) {
+          score = double.tryParse(matchNum.group(0) ?? '') ?? 0.0;
+        }
+      }
+      match['score'] = score;
+    }
+
+    // Navigate to GeminiMatchesScreen with enriched matches
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MatchesScreen(matches: matches),
+        builder: (context) => GeminiMatchesScreen(matches: matches),
       ),
     );
   }
