@@ -131,7 +131,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchListingsAndCreateMarkers();
+    _initUserAndListings();
+  }
+
+  Future<void> _initUserAndListings() async {
+    await _fetchUserInfo();
+    await _fetchListingsAndCreateMarkers();
   }
 
   Future<void> _fetchListingsAndCreateMarkers() async {
@@ -346,12 +351,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               height: 250,
                               child: Builder(
                                 builder: (context) {
+                                  final currentUserId = _userInfo?['_id'];
                                   final filteredListings = _allListings.where((listing) {
-                                    final typeMatch = _filterType == 'All' ||
-                                      listing.listingType.toLowerCase() == _filterType.toLowerCase();
-                                    final regionMatch = _filterRegion.isEmpty ||
-                                      listing.location.toLowerCase().contains(_filterRegion.toLowerCase());
-                                    // Exclude listings posted by current user (by user ID)
                                     dynamic postedBy = listing.postedBy;
                                     String? postedById;
                                     if (postedBy is Map<String, dynamic>) {
@@ -359,8 +360,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                     } else if (postedBy is String) {
                                       postedById = postedBy;
                                     }
-                                    final currentUserId = _userInfo?['_id'];
+                                    print('[DEBUG] Filtering: currentUserId=$currentUserId, postedById=$postedById, listingId=${listing.id}');
                                     if (postedById != null && currentUserId != null && postedById == currentUserId) return false;
+                                    final typeMatch = _filterType == 'All' ||
+                                      listing.listingType.toLowerCase() == _filterType.toLowerCase();
+                                    final regionMatch = _filterRegion.isEmpty ||
+                                      listing.location.toLowerCase().contains(_filterRegion.toLowerCase());
                                     return typeMatch && regionMatch;
                                   }).toList();
                                   // Do not update markers based on filters; always show all
