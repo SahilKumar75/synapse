@@ -80,29 +80,62 @@ class _NewListingScreenState extends State<NewListingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final sfPro = const TextStyle(
+      fontFamily: 'SFPRODISPLAYREGULAR',
+      fontSize: 17,
+      color: Color(0xFF222222),
+    );
+    final sfProBold = const TextStyle(
+      fontFamily: 'SFPRODISPLAYBOLD',
+      fontSize: 20,
+      color: Color(0xFF222222),
+    );
+    final bgColor = const Color(0xFFF8F8F8);
+    final accentColor = const Color(0xFF007AFF); // iOS blue
+    final borderRadius = BorderRadius.circular(14);
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Create New Listing'),
-        backgroundColor: Colors.teal,
+        title: const Text('Create New Listing', style: TextStyle(fontFamily: 'SFPRODISPLAYBOLD', fontSize: 20, color: Color(0xFF222222))),
+        backgroundColor: bgColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFF222222)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
+                style: sfPro,
+                decoration: InputDecoration(
                   labelText: 'Waste Description (e.g., "500kg of plastic scrap")',
-                  border: OutlineInputBorder(),
+                  labelStyle: sfPro,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: borderRadius,
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _locationController,
-                decoration: const InputDecoration(
+                style: sfPro,
+                decoration: InputDecoration(
                   labelText: 'Search Location',
-                  border: OutlineInputBorder(),
+                  labelStyle: sfPro,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: borderRadius,
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                 ),
                 onChanged: (value) async {
                   if (value.isEmpty) {
@@ -123,16 +156,25 @@ class _NewListingScreenState extends State<NewListingScreen> {
                   }
                 },
               ),
-              if (_isSearching) const LinearProgressIndicator(),
+              if (_isSearching)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: LinearProgressIndicator(color: Color(0xFF007AFF)),
+                ),
               if (_placeSuggestions.isNotEmpty)
                 Container(
                   height: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: borderRadius,
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
+                  ),
                   child: ListView.builder(
                     itemCount: _placeSuggestions.length,
                     itemBuilder: (context, index) {
                       final suggestion = _placeSuggestions[index];
                       return ListTile(
-                        title: Text(suggestion['description']),
+                        title: Text(suggestion['description'], style: sfPro),
                         onTap: () async {
                           _locationController.text = suggestion['description'];
                           setState(() { _placeSuggestions = []; });
@@ -160,58 +202,84 @@ class _NewListingScreenState extends State<NewListingScreen> {
                   ),
                 ),
               const SizedBox(height: 16),
-              SizedBox(
+              Container(
                 height: 200,
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: _selectedLatLng ?? LatLng(18.5204, 73.8567),
-                    zoom: 13,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: borderRadius,
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
+                ),
+                child: ClipRRect(
+                  borderRadius: borderRadius,
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _selectedLatLng ?? LatLng(18.5204, 73.8567),
+                      zoom: 13,
+                    ),
+                    markers: _selectedLatLng == null
+                        ? {}
+                        : {
+                            Marker(
+                              markerId: const MarkerId('selected'),
+                              position: _selectedLatLng!,
+                            ),
+                          },
+                    onTap: (latLng) {
+                      setState(() {
+                        _selectedLatLng = latLng;
+                      });
+                    },
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                    },
                   ),
-                  markers: _selectedLatLng == null
-                      ? {}
-                      : {
-                          Marker(
-                            markerId: const MarkerId('selected'),
-                            position: _selectedLatLng!,
-                          ),
-                        },
-                  onTap: (latLng) {
-                    setState(() {
-                      _selectedLatLng = latLng;
-                    });
-                  },
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                  },
                 ),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Text('Listing Type:'),
+                  Text('Listing Type:', style: sfProBold),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: DropdownButton<String>(
-                      value: _listingType,
-                      items: const [
-                        DropdownMenuItem(value: 'OFFER', child: Text('Offer')),
-                        DropdownMenuItem(value: 'REQUEST', child: Text('Request')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _listingType = val);
-                      },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: borderRadius,
+                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _listingType,
+                          style: sfPro,
+                          items: const [
+                            DropdownMenuItem(value: 'OFFER', child: Text('Offer', style: TextStyle(fontFamily: 'SFPRODISPLAYREGULAR'))),
+                            DropdownMenuItem(value: 'REQUEST', child: Text('Request', style: TextStyle(fontFamily: 'SFPRODISPLAYREGULAR'))),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setState(() => _listingType = val);
+                          },
+                          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF007AFF)),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitListing,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitListing,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                    shape: RoundedRectangleBorder(borderRadius: borderRadius),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Submit Listing', style: TextStyle(fontFamily: 'SFPRODISPLAYBOLD', fontSize: 17, color: Colors.white)),
                 ),
-                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Submit Listing'),
               ),
             ],
           ),
