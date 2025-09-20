@@ -59,7 +59,7 @@ router.post('/', auth, async (req, res) => {
 // --- READ ALL LISTINGS ---
 router.get('/', async (req, res) => {
   try {
-    const listings = await Listing.find().populate('postedBy', ['name', 'company']).sort({ createdAt: -1 });
+    const listings = await Listing.find().populate('postedBy', ['_id', 'name', 'company']).sort({ createdAt: -1 });
     res.json(listings);
   } catch (err) {
     console.error(err.message);

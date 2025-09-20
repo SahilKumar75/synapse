@@ -27,10 +27,32 @@ const listingSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  geolocation: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      default: [73.8567, 18.5204]
+    }
+  },
   status: {
     type: String,
     enum: ['open', 'matched', 'closed'],
     default: 'open',
+  },
+  geolocation: {
+    type: {
+      type: String, // 'Point'
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      default: [73.8567, 18.5204]
+    }
   },
 }, {
   timestamps: true

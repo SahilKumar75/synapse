@@ -19,20 +19,26 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
   // User info state
   Map<String, dynamic>? _userInfo;
   bool _showUserCard = false;
 
   Future<void> _fetchUserInfo() async {
     final user = await _authService.getCurrentUser();
-    if (user != null) {
+    if (mounted && user != null) {
       setState(() {
         _userInfo = user;
       });
     }
   }
-  void _updateMarkers(List<Listing> filteredListings) {
-    final markers = filteredListings.map((listing) {
+  void _updateMarkers([List<Listing>? _]) {
+    // Always show all listings as markers
+    final markers = _allListings.map((listing) {
       BitmapDescriptor markerColor;
       switch (listing.listingType.toUpperCase()) {
         case 'OFFER':
@@ -44,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
         default:
           markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
       }
-      // Ensure valid coordinates
       LatLng coords = listing.coordinates;
       if (coords.latitude == 0 && coords.longitude == 0) {
         coords = LatLng(18.5204, 73.8567); // Pune center
@@ -130,10 +135,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchListingsAndCreateMarkers() async {
-    setState(() { _isLoading = true; });
+  if (mounted) setState(() { _isLoading = true; });
 
     final listings = await _listingService.getListings();
     _allListings = listings;
+    // Debug print: show all listings and their coordinates
+    for (var listing in _allListings) {
+      print('[DEBUG] Listing: id=${listing.id}, type=${listing.listingType}, company=${listing.companyName}, desc=${listing.description}, loc=${listing.location}, coords=${listing.coordinates.latitude},${listing.coordinates.longitude}');
+    }
     // Always show all markers for all listings after fetching
     _updateMarkers(_allListings);
     if (mounted) {
@@ -342,12 +351,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                       listing.listingType.toLowerCase() == _filterType.toLowerCase();
                                     final regionMatch = _filterRegion.isEmpty ||
                                       listing.location.toLowerCase().contains(_filterRegion.toLowerCase());
+                                    // Exclude listings posted by current user (by user ID)
+                                    dynamic postedBy = listing.postedBy;
+                                    String? postedById;
+                                    if (postedBy is Map<String, dynamic>) {
+                                      postedById = postedBy['_id'];
+                                    } else if (postedBy is String) {
+                                      postedById = postedBy;
+                                    }
+                                    final currentUserId = _userInfo?['_id'];
+                                    if (postedById != null && currentUserId != null && postedById == currentUserId) return false;
                                     return typeMatch && regionMatch;
                                   }).toList();
-                                  // Update markers whenever filters change
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                    _updateMarkers(filteredListings);
-                                  });
+                                  // Do not update markers based on filters; always show all
                                   if (filteredListings.isEmpty) {
                                     return const Center(child: Text('No listings found.'));
                                   }

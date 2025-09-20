@@ -12,6 +12,7 @@ class Listing {
   final String companyName;
   final LatLng coordinates;
   final String listingType;
+  final Map<String, dynamic>? postedBy;
 
   Listing({
     required this.id,
@@ -20,6 +21,7 @@ class Listing {
     required this.companyName,
     required this.coordinates,
     required this.listingType,
+    this.postedBy,
   });
 
   factory Listing.fromJson(Map<String, dynamic> json) {
@@ -51,6 +53,7 @@ class Listing {
       companyName: json['postedBy']?['company'] ?? 'Unknown Company',
       coordinates: LatLng(lat, lng),
       listingType: json['listingType'] ?? '',
+      postedBy: json['postedBy'],
     );
   }
 }
