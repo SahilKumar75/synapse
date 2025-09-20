@@ -16,6 +16,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  LatLng? _newListingLocation;
+  String? _newListingDescription;
+  String? _newListingType;
+  GoogleMapController? _mapController;
   void _navigateToMatchesScreen(String listingId) async {
     // Fetch matches from backend and navigate
     final matches = await _listingService.getMatches(listingId);
@@ -74,12 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final listings = await _listingService.getListings();
     final markers = listings.map((listing) {
       BitmapDescriptor markerColor = BitmapDescriptor.defaultMarker;
-        if (listing.listingType == 'OFFER') {
-          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-        } else if (listing.listingType == 'REQUEST') {
-          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
-        }
-        markerColor = listing.listingType == 'OFFER' ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen) : BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+      if (listing.listingType == 'OFFER') {
+        markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+      } else if (listing.listingType == 'REQUEST') {
+        markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+      }
       return Marker(
         markerId: MarkerId(listing.id),
         position: listing.coordinates,
@@ -94,6 +97,24 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }).toSet();
 
+    // Add new listing marker if present
+    if (_newListingLocation != null) {
+      BitmapDescriptor markerColor = BitmapDescriptor.defaultMarker;
+      if (_newListingType == 'OFFER') {
+        markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+      } else if (_newListingType == 'REQUEST') {
+        markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+      }
+      markers.add(
+        Marker(
+          markerId: const MarkerId('new_listing'),
+          position: _newListingLocation!,
+          icon: markerColor,
+          infoWindow: InfoWindow(title: _newListingDescription ?? 'New Listing', snippet: 'New Listing'),
+        ),
+      );
+    }
+
     if (mounted) {
       setState(() {
         _markers = markers;
@@ -107,7 +128,22 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const NewListingScreen()),
     );
-    if (result == true) {
+    if (result != null && result is Map && result['success'] == true) {
+      // If location is provided, store info for marker persistence
+      if (result['location'] != null && result['location'] is LatLng) {
+        _newListingLocation = result['location'];
+        _newListingDescription = result['description'] ?? 'New Listing';
+        _newListingType = result['listingType'] ?? '';
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (_mapController != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(_newListingLocation!, 14),
+          );
+        }
+      }
+      // Refresh all markers from backend (will re-add new marker)
+      await _fetchListingsAndCreateMarkers();
+    } else if (result == true) {
       _fetchListingsAndCreateMarkers();
     }
   }
@@ -142,6 +178,9 @@ class _HomeScreenState extends State<HomeScreen> {
           : GoogleMap(
               initialCameraPosition: _puneCameraPosition,
               markers: _markers,
+              onMapCreated: (controller) {
+                _mapController = controller;
+              },
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateAndRefresh,

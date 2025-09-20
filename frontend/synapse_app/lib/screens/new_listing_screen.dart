@@ -49,8 +49,27 @@ class _NewListingScreenState extends State<NewListingScreen> {
     setState(() { _isLoading = false; });
 
     if (success) {
-      // Go back to the previous screen and signal success
-      Navigator.pop(context, true);
+      // Show congratulation dialog
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Congratulations!'),
+          content: const Text('Your listing has been created successfully.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      // Pass location back to previous screen
+      Navigator.pop(context, {
+        'success': true,
+        'location': _selectedLatLng,
+        'description': _descriptionController.text,
+        'listingType': _listingType,
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to create listing.')),
