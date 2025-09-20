@@ -60,6 +60,10 @@ router.post('/', auth, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const listings = await Listing.find().populate('postedBy', ['_id', 'name', 'company']).sort({ createdAt: -1 });
+    // Debug print: log geolocation for each listing
+    listings.forEach(listing => {
+      console.log(`[DEBUG] Listing: id=${listing._id}, location=${listing.location}, geolocation=${JSON.stringify(listing.geolocation)}`);
+    });
     res.json(listings);
   } catch (err) {
     console.error(err.message);

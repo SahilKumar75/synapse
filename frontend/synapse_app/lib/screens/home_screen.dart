@@ -10,6 +10,7 @@ import 'matches_screen.dart';
 import 'listing_details_screen.dart';
 import '../services/auth_service.dart';
 import '../services/listing_service.dart';
+import 'my_listings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,11 +37,19 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-  void _updateMarkers([List<Listing>? _]) {
-    // Always show all listings as markers
-    final markers = _allListings.map((listing) {
+  void _updateMarkers(List<Listing> listings) {
+    // Group listings by coordinates
+    Map<String, List<Listing>> coordMap = {};
+    for (var listing in listings) {
+      final coords = listing.coordinates;
+      final key = '${coords.latitude},${coords.longitude}';
+      coordMap.putIfAbsent(key, () => []).add(listing);
+    }
+    final markers = coordMap.entries.map((entry) {
+      final listingsAtLocation = entry.value;
+      final firstListing = listingsAtLocation.first;
       BitmapDescriptor markerColor;
-      switch (listing.listingType.toUpperCase()) {
+      switch (firstListing.listingType.toUpperCase()) {
         case 'OFFER':
           markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
           break;
@@ -50,25 +59,63 @@ class _HomeScreenState extends State<HomeScreen> {
         default:
           markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
       }
-      LatLng coords = listing.coordinates;
+      LatLng coords = firstListing.coordinates;
       if (coords.latitude == 0 && coords.longitude == 0) {
         coords = LatLng(18.5204, 73.8567); // Pune center
       }
       return Marker(
-        markerId: MarkerId(listing.id),
+        markerId: MarkerId(entry.key),
         position: coords,
         icon: markerColor,
         onTap: () {
-          setState(() {
-            _selectedListing = listing;
-          });
+          if (listingsAtLocation.length == 1) {
+            setState(() {
+              _selectedListing = firstListing;
+            });
+          } else {
+            // Show bottom sheet with all listings at this location
+            showModalBottomSheet(
+              context: context,
+              builder: (context) {
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Text('Listings at this location', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    ...listingsAtLocation.map((listing) => Card(
+                      child: ListTile(
+                        title: Text(listing.companyName),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(listing.description),
+                            Text('Location: ${listing.location}'),
+                          ],
+                        ),
+                        trailing: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() {
+                              _selectedListing = listing;
+                            });
+                          },
+                          child: const Text('View'),
+                        ),
+                      ),
+                    ))
+                  ],
+                );
+              },
+            );
+          }
         },
         infoWindow: InfoWindow(
-          title: listing.description,
-          snippet: '${listing.companyName} - ${listing.location}',
-          onTap: () {
-            _showFindMatchesDialog(listing);
-          },
+          title: listingsAtLocation.length == 1
+              ? firstListing.description
+              : '${listingsAtLocation.length} listings here',
+          snippet: listingsAtLocation.length == 1
+              ? '${firstListing.companyName} - ${firstListing.location}'
+              : '',
         ),
       );
     }).toSet();
@@ -140,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchListingsAndCreateMarkers() async {
-  if (mounted) setState(() { _isLoading = true; });
+    if (mounted) setState(() { _isLoading = true; });
 
     final listings = await _listingService.getListings();
     _allListings = listings;
@@ -148,8 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
     for (var listing in _allListings) {
       print('[DEBUG] Listing: id=${listing.id}, type=${listing.listingType}, company=${listing.companyName}, desc=${listing.description}, loc=${listing.location}, coords=${listing.coordinates.latitude},${listing.coordinates.longitude}');
     }
-    // Always show all markers for all listings after fetching
-    _updateMarkers(_allListings);
+    // Do not update markers here; markers will be updated after filtering in the card list
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -214,6 +260,22 @@ class _HomeScreenState extends State<HomeScreen> {
               });
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.list),
+            tooltip: 'My Listings',
+            onPressed: () {
+              debugPrint('[DEBUG] My Listings button (AppBar) pressed');
+              if (_userInfo != null && _userInfo!['_id'] != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => MyListingsScreen(userId: _userInfo!['_id']),
+                  ),
+                );
+              } else {
+                debugPrint('[ERROR] _userInfo or _userInfo[\'_id\'] is null');
+              }
+            },
+          ),
           NotificationIconButton(),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -270,6 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
+                        // ...existing code...
                         Text('Name: ${_userInfo!['name']}'),
                         Text('Email: ${_userInfo!['email']}'),
                         Text('Company: ${_userInfo!['company']}'),
@@ -360,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     } else if (postedBy is String) {
                                       postedById = postedBy;
                                     }
-                                    print('[DEBUG] Filtering: currentUserId=$currentUserId, postedById=$postedById, listingId=${listing.id}');
+                                    // ...existing code...
                                     if (postedById != null && currentUserId != null && postedById == currentUserId) return false;
                                     final typeMatch = _filterType == 'All' ||
                                       listing.listingType.toLowerCase() == _filterType.toLowerCase();
@@ -368,7 +431,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                       listing.location.toLowerCase().contains(_filterRegion.toLowerCase());
                                     return typeMatch && regionMatch;
                                   }).toList();
-                                  // Do not update markers based on filters; always show all
+                                  // Update markers to match filtered listings
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    _updateMarkers(filteredListings);
+                                  });
                                   if (filteredListings.isEmpty) {
                                     return const Center(child: Text('No listings found.'));
                                   }

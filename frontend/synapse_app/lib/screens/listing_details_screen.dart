@@ -59,21 +59,33 @@ class ListingDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get current user ID from somewhere (e.g., Provider, AuthService, or pass as argument)
+    final currentUserId = ModalRoute.of(context)?.settings.arguments as String?;
+    dynamic postedBy = listing.postedBy;
+    String? postedById;
+    if (postedBy is Map<String, dynamic>) {
+      postedById = postedBy['_id'];
+    } else if (postedBy is String) {
+      postedById = postedBy;
+    }
+    final isOwner = currentUserId != null && postedById == currentUserId;
     return Scaffold(
       appBar: AppBar(
         title: Text(listing.companyName),
         backgroundColor: Colors.teal,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => _navigateToEdit(context),
-            tooltip: 'Edit Listing',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () => _deleteListing(context),
-            tooltip: 'Delete Listing',
-          ),
+          if (isOwner)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => _navigateToEdit(context),
+              tooltip: 'Edit Listing',
+            ),
+          if (isOwner)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () => _deleteListing(context),
+              tooltip: 'Delete Listing',
+            ),
         ],
       ),
       body: Padding(
