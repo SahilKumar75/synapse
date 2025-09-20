@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'login_screen.dart';
 import 'new_listing_screen.dart';
 import 'matches_screen.dart';
+import 'listing_details_screen.dart';
 import '../services/auth_service.dart';
 import '../services/listing_service.dart';
 
@@ -57,6 +58,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = true;
   Set<Marker> _markers = {};
+  Listing? _selectedListing;
+  List<Listing> _allListings = [];
 
   // Pune's coordinates
   static const CameraPosition _puneCameraPosition = CameraPosition(
@@ -73,10 +76,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchListingsAndCreateMarkers() async {
     setState(() { _isLoading = true; });
 
-    final listings = await _listingService.getListings();
+  final listings = await _listingService.getListings();
+  _allListings = listings;
     final markers = listings.map((listing) {
       BitmapDescriptor markerColor;
-      switch (listing.listingType?.toUpperCase()) {
+  switch (listing.listingType.toUpperCase()) {
         case 'OFFER':
           markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
           break;
@@ -90,6 +94,11 @@ class _HomeScreenState extends State<HomeScreen> {
         markerId: MarkerId(listing.id),
         position: listing.coordinates,
         icon: markerColor,
+        onTap: () {
+          setState(() {
+            _selectedListing = listing;
+          });
+        },
         infoWindow: InfoWindow(
           title: listing.description,
           snippet: '${listing.companyName} - ${listing.location}',
@@ -183,15 +192,139 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : GoogleMap(
-              initialCameraPosition: _puneCameraPosition,
-              markers: _markers,
-              onMapCreated: (controller) {
-                _mapController = controller;
-              },
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : GoogleMap(
+                  initialCameraPosition: _puneCameraPosition,
+                  markers: _markers,
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
+                ),
+          Positioned(
+            top: 16,
+            left: 16,
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (_) {},
+              onPointerMove: (_) {},
+              onPointerUp: (_) {},
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 320,
+                  constraints: const BoxConstraints(maxHeight: 400),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: _selectedListing == null
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('All Listings', style: Theme.of(context).textTheme.titleLarge),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 300,
+                              child: ListView.builder(
+                                itemCount: _allListings.length,
+                                itemBuilder: (context, index) {
+                                  final listing = _allListings[index];
+                                  return Card(
+                                    margin: const EdgeInsets.symmetric(vertical: 4),
+                                    child: ListTile(
+                                      title: Text(listing.companyName),
+                                      subtitle: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(listing.description),
+                                          Text('Location: ${listing.location}'),
+                                        ],
+                                      ),
+                                      trailing: ElevatedButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedListing = listing;
+                                          });
+                                        },
+                                        child: const Text('View'),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _selectedListing!.companyName,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_back),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedListing = null;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _selectedListing!.description,
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            const SizedBox(height: 8),
+                            Text('Location: ${_selectedListing!.location}'),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () {
+                                    _showFindMatchesDialog(_selectedListing!);
+                                  },
+                                  child: const Text('Find Matches'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ListingDetailsScreen(listing: _selectedListing!),
+                                      ),
+                                    );
+                                    if (result == true) {
+                                      setState(() {
+                                        _selectedListing = null;
+                                      });
+                                      await _fetchListingsAndCreateMarkers();
+                                    }
+                                  },
+                                  child: const Text('Details'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                ),
+              ),
             ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateAndRefresh,
         backgroundColor: Colors.teal,
