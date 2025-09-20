@@ -1,0 +1,49 @@
+# Synapse
+
+Synapse is a full-stack platform for matching industrial material offers and requests using AI-powered feature engineering and machine learning. It consists of three main components: AI Engine (Python), Backend API (Node.js/Express), and a Flutter Frontend.
+
+## Project Structure
+
+- **ai_engine/** (Python, Flask)
+  - `app.py`: NLP service for extracting structured data from material descriptions.
+  - `feature_engineering.py`: Processes raw match data, engineers features for ML.
+  - `generate_match_dataset.py`: Generates synthetic offer/request match data.
+  - `train_match_model.py`: Trains a Random Forest model to predict match quality.
+  - `match_endpoint.py`: API for scoring matches using the trained model.
+  - Data files: `match_dataset.csv`, `match_features.csv`, `match_model.pkl`.
+
+- **backend/** (Node.js, Express, MongoDB)
+  - `server.js`: Main API server, connects to MongoDB, exposes REST endpoints.
+  - `middleware/auth.js`: JWT authentication middleware.
+  - `models/`: Mongoose schemas for User, Listing, Notification.
+  - `routes/`: API routes for users, listings, notifications, places (Google Maps).
+  - `package.json`: Backend dependencies.
+
+- **frontend/synapse_app/** (Flutter)
+  - `lib/main.dart`: App entry point.
+  - `pubspec.yaml`: Flutter dependencies and asset configuration.
+  - Assets: Logo, fonts, images.
+  - Platform folders: Android, iOS, web, etc.
+
+## Key Features
+
+- **AI Engine**: Extracts material, quantity, and unit from descriptions; engineers features; trains and serves a match prediction model.
+- **Backend API**: User authentication, CRUD for listings, notifications, geolocation, and matching logic.
+- **Frontend App**: User interface for posting offers/requests, viewing matches, and notifications.
+
+## Setup & Usage
+
+1. **AI Engine**: Install Python dependencies (`spacy`, `scikit-learn`, `geopy`, `flask`, etc.), run Flask services on ports 5002 (NLP) and 5003 (match scoring).
+2. **Backend**: Install Node.js dependencies, configure `.env` with `MONGO_URI`, `JWT_SECRET`, and API keys, then start the server.
+3. **Frontend**: Install Flutter dependencies, run the app on your target platform.
+
+## Data Flow
+
+- Users post offers/requests via the frontend.
+- Backend processes listings, calls AI Engine for NLP and match scoring.
+- Listings and notifications are stored in MongoDB.
+- Matching logic uses both rule-based and ML-based approaches.
+
+## License
+
+This project is licensed under the ISC License.
