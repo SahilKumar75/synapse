@@ -95,5 +95,22 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// --- Get Current User Route ---
+// @route   GET api/users/me
+// @desc    Get current logged-in user's info
+// @access  Private
+router.get('/me', async (req, res) => {
+  const token = req.header('x-auth-token');
+  if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id).select('-password');
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(401).json({ msg: 'Token is not valid' });
+  }
+});
+
 // Export the router to be used in server.js
 module.exports = router;

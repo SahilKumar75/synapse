@@ -1,6 +1,8 @@
 // lib/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
+import '../widgets/account_icon_button.dart';
+import '../widgets/notification_icon_button.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'login_screen.dart';
 import 'new_listing_screen.dart';
@@ -17,6 +19,60 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // User info state
+  Map<String, dynamic>? _userInfo;
+  bool _showUserCard = false;
+
+  Future<void> _fetchUserInfo() async {
+    final user = await _authService.getCurrentUser();
+    if (user != null) {
+      setState(() {
+        _userInfo = user;
+      });
+    }
+  }
+  void _updateMarkers(List<Listing> filteredListings) {
+    final markers = filteredListings.map((listing) {
+      BitmapDescriptor markerColor;
+      switch (listing.listingType.toUpperCase()) {
+        case 'OFFER':
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+          break;
+        case 'REQUEST':
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+          break;
+        default:
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
+      }
+      // Ensure valid coordinates
+      LatLng coords = listing.coordinates;
+      if (coords.latitude == 0 && coords.longitude == 0) {
+        coords = LatLng(18.5204, 73.8567); // Pune center
+      }
+      return Marker(
+        markerId: MarkerId(listing.id),
+        position: coords,
+        icon: markerColor,
+        onTap: () {
+          setState(() {
+            _selectedListing = listing;
+          });
+        },
+        infoWindow: InfoWindow(
+          title: listing.description,
+          snippet: '${listing.companyName} - ${listing.location}',
+          onTap: () {
+            _showFindMatchesDialog(listing);
+          },
+        ),
+      );
+    }).toSet();
+    setState(() {
+      _markers = markers;
+    });
+  }
+  String _filterType = 'All';
+  String _filterRegion = '';
   List<Map<String, dynamic>> _newListings = [];
   GoogleMapController? _mapController;
   void _navigateToMatchesScreen(String listingId) async {
@@ -76,65 +132,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchListingsAndCreateMarkers() async {
     setState(() { _isLoading = true; });
 
-  final listings = await _listingService.getListings();
-  _allListings = listings;
-    final markers = listings.map((listing) {
-      BitmapDescriptor markerColor;
-  switch (listing.listingType.toUpperCase()) {
-        case 'OFFER':
-          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-          break;
-        case 'REQUEST':
-          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
-          break;
-        default:
-          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
-      }
-      return Marker(
-        markerId: MarkerId(listing.id),
-        position: listing.coordinates,
-        icon: markerColor,
-        onTap: () {
-          setState(() {
-            _selectedListing = listing;
-          });
-        },
-        infoWindow: InfoWindow(
-          title: listing.description,
-          snippet: '${listing.companyName} - ${listing.location}',
-          onTap: () {
-            _showFindMatchesDialog(listing);
-          },
-        ),
-      );
-    }).toSet();
-
-    // Add all new listing markers
-    for (var newListing in _newListings) {
-      BitmapDescriptor markerColor;
-      switch (newListing['listingType']?.toUpperCase()) {
-        case 'OFFER':
-          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-          break;
-        case 'REQUEST':
-          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
-          break;
-        default:
-          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
-      }
-      markers.add(
-        Marker(
-          markerId: MarkerId('new_listing_${newListing['location'].toString()}'),
-          position: newListing['location'],
-          icon: markerColor,
-          infoWindow: InfoWindow(title: newListing['description'] ?? 'New Listing', snippet: 'New Listing'),
-        ),
-      );
-    }
-
+    final listings = await _listingService.getListings();
+    _allListings = listings;
+    // Always show all markers for all listings after fetching
+    _updateMarkers(_allListings);
     if (mounted) {
       setState(() {
-        _markers = markers;
         _isLoading = false;
       });
     }
@@ -170,6 +173,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _logout() async {
     await _authService.logout();
     if (mounted) {
+      setState(() {
+        _filterType = 'All';
+        _filterRegion = '';
+      });
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -185,6 +192,15 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Synapse Map'),
         backgroundColor: Colors.teal,
         actions: [
+          AccountIconButton(
+            onPressed: () async {
+              await _fetchUserInfo();
+              setState(() {
+                _showUserCard = true;
+              });
+            },
+          ),
+          NotificationIconButton(),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _logout,
@@ -203,6 +219,66 @@ class _HomeScreenState extends State<HomeScreen> {
                     _mapController = controller;
                   },
                 ),
+          // User details card overlay
+          if (_showUserCard && _userInfo != null)
+            Positioned(
+              top: 16,
+              right: 16,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {}, // Prevent tap-through
+                child: Material(
+                  elevation: 8,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 280,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Account Details', style: Theme.of(context).textTheme.titleMedium),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  _showUserCard = false;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('Name: ${_userInfo!['name']}'),
+                        Text('Email: ${_userInfo!['email']}'),
+                        Text('Company: ${_userInfo!['company']}'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // Dismiss card when tapping outside
+          if (_showUserCard)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showUserCard = false;
+                  });
+                },
+                child: Container(
+                  color: Colors.transparent,
+                ),
+              ),
+            ),
           Positioned(
             top: 16,
             left: 16,
@@ -228,32 +304,104 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Text('All Listings', style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 8),
-                            SizedBox(
-                              height: 300,
-                              child: ListView.builder(
-                                itemCount: _allListings.length,
-                                itemBuilder: (context, index) {
-                                  final listing = _allListings[index];
-                                  return Card(
-                                    margin: const EdgeInsets.symmetric(vertical: 4),
-                                    child: ListTile(
-                                      title: Text(listing.companyName),
-                                      subtitle: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(listing.description),
-                                          Text('Location: ${listing.location}'),
-                                        ],
-                                      ),
-                                      trailing: ElevatedButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _selectedListing = listing;
-                                          });
-                                        },
-                                        child: const Text('View'),
-                                      ),
+                            Row(
+                              children: [
+                                DropdownButton<String>(
+                                  value: _filterType,
+                                  items: const [
+                                    DropdownMenuItem(value: 'All', child: Text('All')),
+                                    DropdownMenuItem(value: 'Offer', child: Text('Offer')),
+                                    DropdownMenuItem(value: 'Request', child: Text('Request')),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) setState(() => _filterType = val);
+                                  },
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: TextField(
+                                    decoration: const InputDecoration(
+                                      labelText: 'Region/Location',
+                                      border: OutlineInputBorder(),
+                                      isDense: true,
                                     ),
+                                    onChanged: (val) {
+                                      setState(() => _filterRegion = val);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 250,
+                              child: Builder(
+                                builder: (context) {
+                                  final filteredListings = _allListings.where((listing) {
+                                    final typeMatch = _filterType == 'All' ||
+                                      listing.listingType.toLowerCase() == _filterType.toLowerCase();
+                                    final regionMatch = _filterRegion.isEmpty ||
+                                      listing.location.toLowerCase().contains(_filterRegion.toLowerCase());
+                                    return typeMatch && regionMatch;
+                                  }).toList();
+                                  // Update markers whenever filters change
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    _updateMarkers(filteredListings);
+                                  });
+                                  if (filteredListings.isEmpty) {
+                                    return const Center(child: Text('No listings found.'));
+                                  }
+                                  return ListView.builder(
+                                    itemCount: filteredListings.length,
+                                    itemBuilder: (context, index) {
+                                      final listing = filteredListings[index];
+                                      Color borderColor;
+                                      switch (listing.listingType.toLowerCase()) {
+                                        case 'offer':
+                                          borderColor = Colors.green;
+                                          break;
+                                        case 'request':
+                                          borderColor = Colors.orange;
+                                          break;
+                                        default:
+                                          borderColor = Colors.grey;
+                                      }
+                                      return Container(
+                                        margin: const EdgeInsets.symmetric(vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border(
+                                            left: BorderSide(color: borderColor, width: 6),
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black12,
+                                              blurRadius: 2,
+                                              offset: Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ListTile(
+                                          title: Text(listing.companyName),
+                                          subtitle: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(listing.description),
+                                              Text('Location: ${listing.location}'),
+                                            ],
+                                          ),
+                                          trailing: ElevatedButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                _selectedListing = listing;
+                                              });
+                                            },
+                                            child: const Text('View'),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               ),

@@ -23,12 +23,25 @@ class Listing {
   });
 
   factory Listing.fromJson(Map<String, dynamic> json) {
-    // Default to Pune coordinates if none are provided
+    // Default to Pune coordinates if none are provided or invalid
     double lat = 18.5204;
     double lng = 73.8567;
     if (json['geolocation'] != null && json['geolocation']['coordinates'] != null) {
-      lng = json['geolocation']['coordinates'][0].toDouble();
-      lat = json['geolocation']['coordinates'][1].toDouble();
+      try {
+        final coords = json['geolocation']['coordinates'];
+        if (coords is List && coords.length == 2) {
+          lng = coords[0].toDouble();
+          lat = coords[1].toDouble();
+          // If coordinates are [0,0], use Pune center
+          if (lat == 0 && lng == 0) {
+            lat = 18.5204;
+            lng = 73.8567;
+          }
+        }
+      } catch (_) {
+        lat = 18.5204;
+        lng = 73.8567;
+      }
     }
 
     return Listing(

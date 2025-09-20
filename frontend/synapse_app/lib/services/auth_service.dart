@@ -5,6 +5,26 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
+  Future<Map<String, dynamic>?> getCurrentUser() async {
+    try {
+      String? token = await getToken();
+      if (token == null) return null;
+      final response = await http.get(
+        Uri.parse('$_baseUrl/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
+        },
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
   // For web or iOS Simulator, use localhost. For Android Emulator, use 10.0.2.2.
   final String _baseUrl = 'http://localhost:5001/api/users';
   final _storage = const FlutterSecureStorage();

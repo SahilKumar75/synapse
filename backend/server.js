@@ -7,6 +7,7 @@ const cors = require('cors')
 
 const userRoutes = require('./routes/users');
 const listingRoutes = require('./routes/listings');
+const notificationRoutes = require('./routes/notifications');
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 // 2. Now, define your routes.
 app.use('/api/users', userRoutes);
 app.use('/api/listings', listingRoutes);
+app.use('/api/notifications', notificationRoutes);
 const placesRoutes = require('./routes/places');
 app.use('/api/places', placesRoutes);
 // ===========
