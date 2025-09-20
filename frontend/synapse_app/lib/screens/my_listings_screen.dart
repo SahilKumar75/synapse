@@ -71,21 +71,62 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                                 Text('Location: ${listing.location}'),
                               ],
                             ),
-                            trailing: ElevatedButton(
-                              onPressed: () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ListingDetailsScreen(listing: listing),
-                                    settings: RouteSettings(arguments: widget.userId),
-                                  ),
-                                );
-                                if (result == true) {
-                                  // Refresh listings after edit
-                                  _fetchMyListings();
-                                }
-                              },
-                              child: const Text('View'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ListingDetailsScreen(listing: listing),
+                                        settings: RouteSettings(arguments: widget.userId),
+                                      ),
+                                    );
+                                    if (result == true) {
+                                      _fetchMyListings();
+                                    }
+                                  },
+                                  child: const Text('View'),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('End Listing'),
+                                        content: const Text('Are you sure you want to end (delete) this listing?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(true),
+                                            child: const Text('End Listing'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      final success = await _listingService.deleteListing(listing.id);
+                                      if (success) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Listing ended successfully.'), backgroundColor: Colors.green),
+                                        );
+                                        _fetchMyListings();
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Failed to end listing.'), backgroundColor: Colors.red),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: const Text('End Listing'),
+                                ),
+                              ],
                             ),
                           ),
                         );
