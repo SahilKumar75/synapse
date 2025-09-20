@@ -47,3 +47,61 @@ Synapse is a full-stack platform for matching industrial material offers and req
 ## License
 
 This project is licensed under the ISC License.
+
+## How to Run
+
+### 1. AI Engine (Python)
+1. Navigate to the `ai_engine/` directory.
+2. Install dependencies:
+  ```bash
+  pip install -r requirements.txt
+  ```
+  (If no `requirements.txt`, install: flask, spacy, scikit-learn, geopy, pandas, joblib)
+3. Download spaCy model:
+  ```bash
+  python -m spacy download en_core_web_sm
+  ```
+4. Generate synthetic data and features:
+  ```bash
+  python generate_match_dataset.py
+  python feature_engineering.py
+  ```
+5. Train the model:
+  ```bash
+  python train_match_model.py
+  ```
+6. Start NLP and match endpoints:
+  ```bash
+  python app.py      # Runs on port 5002
+  python match_endpoint.py  # Runs on port 5003
+  ```
+
+### 2. Backend (Node.js)
+1. Navigate to the `backend/` directory.
+2. Install dependencies:
+  ```bash
+  npm install
+  ```
+3. Create a `.env` file with:
+  ```env
+  MONGO_URI=your_mongodb_uri
+  JWT_SECRET=your_jwt_secret
+  OPENCAGE_API_KEY=your_opencage_key
+  GOOGLE_API_KEY=your_google_api_key
+  ```
+4. Start the server:
+  ```bash
+  node server.js
+  ```
+
+### 3. Frontend (Flutter)
+1. Navigate to `frontend/synapse_app/`.
+2. Install dependencies:
+  ```bash
+  flutter pub get
+  ```
+3. Run the app:
+  ```bash
+  flutter run
+  ```
+  (Choose your target device: Android, iOS, Web, etc.)
