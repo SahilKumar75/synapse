@@ -252,44 +252,111 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: SizedBox(
-                height: 32,
-                width: 32,
-                child: SvgPicture.asset(
-                  'assets/logo.svg',
+        title: Container(
+          constraints: const BoxConstraints(maxWidth: 180),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(4),
+                child: SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: SvgPicture.asset(
+                    'assets/logo.svg',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-            ),
-            Text(
-              'Synapse',
-              style: const TextStyle(
-                fontFamily: 'SF Pro Display',
-                fontWeight: FontWeight.w700,
-                fontSize: 24,
-                color: Colors.black,
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  'Synapse',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'SF Pro Display',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 22,
+                    color: Colors.black,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
-          AccountIconButton(
-            onPressed: () async {
-              await _fetchUserInfo();
-              setState(() {
-                _showUserCard = true;
-              });
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.list),
+                    tooltip: 'My Listings',
+                    onPressed: () {
+                      if (_userInfo != null && _userInfo!['_id'] != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MyListingsScreen(userId: _userInfo!['_id']),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  AccountIconButton(
+                    onPressed: () async {
+                      await _fetchUserInfo();
+                      setState(() {
+                        _showUserCard = true;
+                      });
+                    },
+                  ),
+                  NotificationIconButton(),
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    onPressed: _logout,
+                    tooltip: 'Logout',
+                  ),
+                ],
+              ),
+            ),
           ),
-          NotificationIconButton(),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-            tooltip: 'Logout',
-          )
         ],
       ),
       body: Stack(
