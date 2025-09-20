@@ -16,6 +16,7 @@ class NewListingScreen extends StatefulWidget {
 }
 
 class _NewListingScreenState extends State<NewListingScreen> {
+  GoogleMapController? _mapController;
   List<dynamic> _placeSuggestions = [];
   bool _isSearching = false;
   final String _placesApiBase = 'http://localhost:5001/api/places';
@@ -145,6 +146,13 @@ class _NewListingScreenState extends State<NewListingScreen> {
                             setState(() {
                               _selectedLatLng = LatLng(location['lat'], location['lng']);
                             });
+                            // Animate map to selected location
+                            await Future.delayed(const Duration(milliseconds: 200));
+                            if (_mapController != null) {
+                              _mapController!.animateCamera(
+                                CameraUpdate.newLatLngZoom(LatLng(location['lat'], location['lng']), 14),
+                              );
+                            }
                           }
                         },
                       );
@@ -171,6 +179,9 @@ class _NewListingScreenState extends State<NewListingScreen> {
                     setState(() {
                       _selectedLatLng = latLng;
                     });
+                  },
+                  onMapCreated: (controller) {
+                    _mapController = controller;
                   },
                 ),
               ),

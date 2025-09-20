@@ -16,9 +16,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  LatLng? _newListingLocation;
-  String? _newListingDescription;
-  String? _newListingType;
+  List<Map<String, dynamic>> _newListings = [];
   GoogleMapController? _mapController;
   void _navigateToMatchesScreen(String listingId) async {
     // Fetch matches from backend and navigate
@@ -77,11 +75,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final listings = await _listingService.getListings();
     final markers = listings.map((listing) {
-      BitmapDescriptor markerColor = BitmapDescriptor.defaultMarker;
-      if (listing.listingType == 'OFFER') {
-        markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-      } else if (listing.listingType == 'REQUEST') {
-        markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+      BitmapDescriptor markerColor;
+      switch (listing.listingType?.toUpperCase()) {
+        case 'OFFER':
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+          break;
+        case 'REQUEST':
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+          break;
+        default:
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
       }
       return Marker(
         markerId: MarkerId(listing.id),
@@ -97,20 +100,25 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }).toSet();
 
-    // Add new listing marker if present
-    if (_newListingLocation != null) {
-      BitmapDescriptor markerColor = BitmapDescriptor.defaultMarker;
-      if (_newListingType == 'OFFER') {
-        markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-      } else if (_newListingType == 'REQUEST') {
-        markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+    // Add all new listing markers
+    for (var newListing in _newListings) {
+      BitmapDescriptor markerColor;
+      switch (newListing['listingType']?.toUpperCase()) {
+        case 'OFFER':
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+          break;
+        case 'REQUEST':
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+          break;
+        default:
+          markerColor = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
       }
       markers.add(
         Marker(
-          markerId: const MarkerId('new_listing'),
-          position: _newListingLocation!,
+          markerId: MarkerId('new_listing_${newListing['location'].toString()}'),
+          position: newListing['location'],
           icon: markerColor,
-          infoWindow: InfoWindow(title: _newListingDescription ?? 'New Listing', snippet: 'New Listing'),
+          infoWindow: InfoWindow(title: newListing['description'] ?? 'New Listing', snippet: 'New Listing'),
         ),
       );
     }
@@ -131,17 +139,19 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result != null && result is Map && result['success'] == true) {
       // If location is provided, store info for marker persistence
       if (result['location'] != null && result['location'] is LatLng) {
-        _newListingLocation = result['location'];
-        _newListingDescription = result['description'] ?? 'New Listing';
-        _newListingType = result['listingType'] ?? '';
+        _newListings.add({
+          'location': result['location'],
+          'description': result['description'] ?? 'New Listing',
+          'listingType': result['listingType'] ?? '',
+        });
         await Future.delayed(const Duration(milliseconds: 300));
         if (_mapController != null) {
           _mapController!.animateCamera(
-            CameraUpdate.newLatLngZoom(_newListingLocation!, 14),
+            CameraUpdate.newLatLngZoom(result['location'], 14),
           );
         }
       }
-      // Refresh all markers from backend (will re-add new marker)
+      // Refresh all markers from backend (will re-add all new markers)
       await _fetchListingsAndCreateMarkers();
     } else if (result == true) {
       _fetchListingsAndCreateMarkers();
