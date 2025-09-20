@@ -11,6 +11,7 @@ import 'listing_details_screen.dart';
 import '../services/auth_service.dart';
 import '../services/listing_service.dart';
 import 'my_listings_screen.dart';
+import '../widgets/listing_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -81,27 +82,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     Text('Listings at this location', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    ...listingsAtLocation.map((listing) => Card(
-                      child: ListTile(
-                        title: Text(listing.companyName),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(listing.description),
-                            Text('Location: ${listing.location}'),
-                          ],
-                        ),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            setState(() {
-                              _selectedListing = listing;
-                            });
-                          },
-                          child: const Text('View'),
-                        ),
-                      ),
+                    const SizedBox(height: 180),
+                    ...listingsAtLocation.map((listing) => ListingCard(
+                      listing: listing,
+                      borderColor: (() {
+                        switch (listing.listingType.toLowerCase()) {
+                          case 'offer':
+                            return Colors.green;
+                          case 'request':
+                            return Colors.orange;
+                          default:
+                            return Colors.grey;
+                        }
+                      })(),
+                      onView: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          _selectedListing = listing;
+                        });
+                      },
                     ))
                   ],
                 );
@@ -250,7 +249,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Synapse Map'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           AccountIconButton(
             onPressed: () async {
@@ -258,22 +258,6 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {
                 _showUserCard = true;
               });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.list),
-            tooltip: 'My Listings',
-            onPressed: () {
-              debugPrint('[DEBUG] My Listings button (AppBar) pressed');
-              if (_userInfo != null && _userInfo!['_id'] != null) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => MyListingsScreen(userId: _userInfo!['_id']),
-                  ),
-                );
-              } else {
-                debugPrint('[ERROR] _userInfo or _userInfo[\'_id\'] is null');
-              }
             },
           ),
           NotificationIconButton(),
@@ -332,7 +316,29 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        // ...existing code...
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.list),
+                          label: const Text('My Listings'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                          ),
+                          onPressed: () {
+                            if (_userInfo != null && _userInfo!['_id'] != null) {
+                              setState(() {
+                                _showUserCard = false;
+                              });
+                              Future.delayed(const Duration(milliseconds: 200), () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MyListingsScreen(userId: _userInfo!['_id']),
+                                  ),
+                                );
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 8),
                         Text('Name: ${_userInfo!['name']}'),
                         Text('Email: ${_userInfo!['email']}'),
                         Text('Company: ${_userInfo!['company']}'),
@@ -366,39 +372,61 @@ class _HomeScreenState extends State<HomeScreen> {
               onPointerUp: (_) {},
               child: Material(
                 elevation: 8,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  width: 320,
-                  constraints: const BoxConstraints(maxHeight: 400),
-                  padding: const EdgeInsets.all(16),
+                  width: 480,
+                  constraints: const BoxConstraints(minHeight: 420, maxHeight: 600),
+                  padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 32),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: _selectedListing == null
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('All Listings', style: Theme.of(context).textTheme.titleLarge),
+                            Text('All Listings', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, fontFamily: 'SF Pro')),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                DropdownButton<String>(
-                                  value: _filterType,
-                                  items: const [
-                                    DropdownMenuItem(value: 'All', child: Text('All')),
-                                    DropdownMenuItem(value: 'Offer', child: Text('Offer')),
-                                    DropdownMenuItem(value: 'Request', child: Text('Request')),
-                                  ],
-                                  onChanged: (val) {
-                                    if (val != null) setState(() => _filterType = val);
-                                  },
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFFF7F7F7),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Color(0xFFE0E0E0)),
+                                  ),
+                                  child: DropdownButton<String>(
+                                    value: _filterType,
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 'All',
+                                        child: Text('All', style: TextStyle(fontFamily: 'SF Pro', fontSize: 18, fontWeight: FontWeight.w500)),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Offer',
+                                        child: Text('Offer', style: TextStyle(fontFamily: 'SF Pro', fontSize: 18, fontWeight: FontWeight.w500)),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Request',
+                                        child: Text('Request', style: TextStyle(fontFamily: 'SF Pro', fontSize: 18, fontWeight: FontWeight.w500)),
+                                      ),
+                                    ],
+                                    onChanged: (val) {
+                                      if (val != null) setState(() => _filterType = val);
+                                    },
+                                    underline: SizedBox(),
+                                    icon: Icon(Icons.arrow_drop_down, color: Color(0xFF007AFF)),
+                                    dropdownColor: Color(0xFFF7F7F7),
+                                  ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: TextField(
+                                    style: const TextStyle(fontFamily: 'SF Pro'),
                                     decoration: const InputDecoration(
                                       labelText: 'Region/Location',
+                                      labelStyle: TextStyle(fontFamily: 'SF Pro'),
                                       border: OutlineInputBorder(),
                                       isDense: true,
                                     ),
@@ -410,8 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            SizedBox(
-                              height: 250,
+                            Expanded(
                               child: Builder(
                                 builder: (context) {
                                   final currentUserId = _userInfo?['_id'];
@@ -423,7 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     } else if (postedBy is String) {
                                       postedById = postedBy;
                                     }
-                                    // ...existing code...
+                                    print('[DEBUG] Filtering: currentUserId=$currentUserId, postedById=$postedById, listingId=${listing.id}');
                                     if (postedById != null && currentUserId != null && postedById == currentUserId) return false;
                                     final typeMatch = _filterType == 'All' ||
                                       listing.listingType.toLowerCase() == _filterType.toLowerCase();
@@ -442,51 +469,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                     itemCount: filteredListings.length,
                                     itemBuilder: (context, index) {
                                       final listing = filteredListings[index];
-                                      Color borderColor;
-                                      switch (listing.listingType.toLowerCase()) {
-                                        case 'offer':
-                                          borderColor = Colors.green;
-                                          break;
-                                        case 'request':
-                                          borderColor = Colors.orange;
-                                          break;
-                                        default:
-                                          borderColor = Colors.grey;
-                                      }
-                                      return Container(
-                                        margin: const EdgeInsets.symmetric(vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border(
-                                            left: BorderSide(color: borderColor, width: 6),
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black12,
-                                              blurRadius: 2,
-                                              offset: Offset(0, 1),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ListTile(
-                                          title: Text(listing.companyName),
-                                          subtitle: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(listing.description),
-                                              Text('Location: ${listing.location}'),
-                                            ],
-                                          ),
-                                          trailing: ElevatedButton(
-                                            onPressed: () {
-                                              setState(() {
-                                                _selectedListing = listing;
-                                              });
-                                            },
-                                            child: const Text('View'),
-                                          ),
-                                        ),
+                                      return ListingCard(
+                                        listing: listing,
+                                        borderColor: (() {
+                                          switch (listing.listingType.toLowerCase()) {
+                                            case 'offer':
+                                              return Colors.green;
+                                            case 'request':
+                                              return Colors.orange;
+                                            default:
+                                              return Colors.grey;
+                                          }
+                                        })(),
+                                        onView: () {
+                                          setState(() {
+                                            _selectedListing = listing;
+                                          });
+                                        },
                                       );
                                     },
                                   );
