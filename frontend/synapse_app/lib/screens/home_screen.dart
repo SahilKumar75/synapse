@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/account_icon_button.dart';
 import '../widgets/notification_icon_button.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'login_screen.dart';
 import 'new_listing_screen.dart';
@@ -247,10 +248,33 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Synapse Map'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        title: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: SizedBox(
+                height: 32,
+                width: 32,
+                child: SvgPicture.asset(
+                  'assets/logo.svg',
+                ),
+              ),
+            ),
+            Text(
+              'Synapse',
+              style: const TextStyle(
+                fontFamily: 'SF Pro Display',
+                fontWeight: FontWeight.w700,
+                fontSize: 24,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
         actions: [
           AccountIconButton(
             onPressed: () async {
@@ -363,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           Positioned(
-            top: 16,
+            top: MediaQuery.of(context).padding.top + kToolbarHeight + 16,
             left: 16,
             child: Listener(
               behavior: HitTestBehavior.translucent,
@@ -450,7 +474,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                     } else if (postedBy is String) {
                                       postedById = postedBy;
                                     }
-                                    print('[DEBUG] Filtering: currentUserId=$currentUserId, postedById=$postedById, listingId=${listing.id}');
                                     if (postedById != null && currentUserId != null && postedById == currentUserId) return false;
                                     final typeMatch = _filterType == 'All' ||
                                       listing.listingType.toLowerCase() == _filterType.toLowerCase();
