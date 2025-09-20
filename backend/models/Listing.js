@@ -8,6 +8,11 @@ const listingSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  listingType: {
+    type: String,
+    enum: ['OFFER', 'REQUEST'], // Can only be one of these two values
+    required: true,
+  },
   description: { // The raw text from the user
     type: String,
     required: true,

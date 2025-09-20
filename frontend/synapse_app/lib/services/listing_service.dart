@@ -3,26 +3,38 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class Listing {
   final String id;
   final String description;
   final String location;
   final String companyName;
+  final LatLng coordinates;
 
   Listing({
     required this.id,
     required this.description,
     required this.location,
     required this.companyName,
+    required this.coordinates,
   });
 
   factory Listing.fromJson(Map<String, dynamic> json) {
+    // Default to Pune coordinates if none are provided
+    double lat = 18.5204;
+    double lng = 73.8567;
+    if (json['geolocation'] != null && json['geolocation']['coordinates'] != null) {
+      lng = json['geolocation']['coordinates'][0].toDouble();
+      lat = json['geolocation']['coordinates'][1].toDouble();
+    }
+
     return Listing(
       id: json['_id'] ?? '',
       description: json['description'] ?? 'No description',
       location: json['location'] ?? 'No location',
       companyName: json['postedBy']?['company'] ?? 'Unknown Company',
+      coordinates: LatLng(lat, lng), // <-- ADD THIS
     );
   }
 }
